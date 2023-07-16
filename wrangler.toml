@@ -1,0 +1,14 @@
+name = "gh-to-dc-forwarder"
+main = "build/worker/shim.mjs"
+compatibility_date = "2023-07-16"
+
+[build]
+command = "cargo install -q worker-build && worker-build --release"
+
+[vars]
+REVIEWERS_ROLE_ID = "1069338073978130493"
+
+# The necessary secrets are:
+# - GH_SECRET
+# - WEBHOOK_URL
+# Run `echo <VALUE> | wrangler secret put <NAME>` for each of these
