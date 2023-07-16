@@ -1,14 +1,24 @@
 # Github to Discord Webhook Forwarder
 
+This is a [Cloudflare Worker](https://workers.cloudflare.com/) that forwards Github webhooks to a Discord webhook.
+
 ## Worker setup
 
 Clone this repository and install the dependencies with `npm install`.
 
-Set the right `REVIEWERS_ROLE_ID` in `wrangler.toml`.
+(Optional) Set the right `REVIEWERS_ROLE_ID` in `wrangler.toml`.
 
-Set the `GH_SECRET` secret to a random string by running `echo random_string_here | wrangler secret put GH_SECRET`.
+Set the `GH_SECRET` secret to a random string by running
 
-Set the `WEBHOOK_URL` secret by running `echo https://discord.com/api/webhooks/... | wrangler secret put WEBHOOK_URL`.
+```shell
+echo random_string_here | wrangler secret put GH_SECRET
+```
+
+Set the `WEBHOOK_URL` secret by running
+
+```shell
+echo https://discord.com/api/webhooks/... | wrangler secret put WEBHOOK_URL
+```
 
 Run `wrangler deploy` to deploy the worker.
 
