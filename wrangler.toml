@@ -7,6 +7,7 @@ command = "cargo install -q worker-build && worker-build --release"
 
 [vars]
 REVIEWERS_ROLE_ID = "1069338073978130493"
+GH_TEAM = "reviewers"
 
 # The necessary secrets are:
 # - GH_SECRET

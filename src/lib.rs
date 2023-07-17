@@ -11,6 +11,12 @@ mod discord;
 mod github;
 
 #[derive(Debug)]
+struct GithubConfig {
+    pub secret: String,
+    pub team: Option<String>,
+}
+
+#[derive(Debug)]
 struct DiscordConfig {
     pub webhook_url: String,
     pub reviewers_role_id: Option<u64>,
@@ -18,7 +24,7 @@ struct DiscordConfig {
 
 #[derive(Debug)]
 struct AppConfig {
-    pub gh_secret: String,
+    pub github: GithubConfig,
     pub discord: DiscordConfig,
 }
 
@@ -27,10 +33,16 @@ impl TryFrom<Env> for AppConfig {
 
     fn try_from(env: Env) -> worker::Result<Self> {
         Ok(Self {
-            gh_secret: env.secret("GH_SECRET")?.to_string(),
+            github: GithubConfig {
+                secret: env.secret("GH_SECRET")?.to_string(),
+                team: env.var("GH_REVIEWER_TEAM").ok().map(|t| t.to_string()),
+            },
             discord: DiscordConfig {
                 webhook_url: env.secret("WEBHOOK_URL")?.to_string(),
-                reviewers_role_id: env.var("REVIEWERS_ROLE_ID").ok().and_then(|v| v.to_string().parse().ok()),
+                reviewers_role_id: env
+                    .var("REVIEWERS_ROLE_ID")
+                    .ok()
+                    .and_then(|v| v.to_string().parse().ok()),
             },
         })
     }
@@ -56,7 +68,7 @@ async fn main(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
         Err(e) => {
             console_log!("error loading configuration: {}", e);
             return Response::error("invalid configuration", 500);
-        },
+        }
     };
 
     let Ok(bytes) = req.bytes().await else {
@@ -71,7 +83,7 @@ async fn main(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
         Ok(signature) => signature,
         Err(e) => return Response::error(format!("invalid signature: {e}"), 400),
     };
-    let mut mac = hmac::Hmac::<sha2::Sha256>::new_from_slice(config.gh_secret.as_bytes())
+    let mut mac = hmac::Hmac::<sha2::Sha256>::new_from_slice(config.github.secret.as_bytes())
         .expect("HMAC can take key of any size");
     mac.update(&bytes);
     if let Err(e) = mac.verify_slice(&signature) {
@@ -88,12 +100,12 @@ async fn main(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
 
     // Event handling
     match Event::from_payload(event_type, payload) {
-        Ok(event) => handle_event(event, &config.discord).await,
+        Ok(event) => handle_event(event, &config).await,
         Err(e) => Response::ok(format!("unsupported event: {e}")),
     }
 }
 
-async fn handle_event(event: Event, discord: &DiscordConfig) -> Result<Response> {
+async fn handle_event(event: Event, config: &AppConfig) -> Result<Response> {
     console_log!("Received event");
     match event {
         Event::Ping { hook_id, zen } => console_log!("Received ping for {}, zen: {}", hook_id, zen),
@@ -119,23 +131,27 @@ async fn handle_event(event: Event, discord: &DiscordConfig) -> Result<Response>
                     embeds: vec![Embed::from_pr(pull_request, repository)],
                 },
                 PullRequestAction::ReviewRequested => {
-                    let requested_team = requested_team
-                        .map(|t| format!(" from {}", t))
-                        .unwrap_or_default();
-                    let ping = discord
-                        .reviewers_role_id
-                        .map(|r| format!("<@&{}>\n", r))
-                        .unwrap_or_default();
-                    Message {
-                        content: format!("{}{} requested review{}", ping, name, requested_team),
-                        embeds: vec![Embed::from_pr(pull_request, repository)],
+                    if requested_team == config.github.team {
+                        let requested_team = requested_team
+                            .map(|t| format!(" from {}", t))
+                            .unwrap_or_default();
+                        let ping = config.discord
+                            .reviewers_role_id
+                            .map(|r| format!("<@&{}>\n", r))
+                            .unwrap_or_default();
+                        Message {
+                            content: format!("{}{} requested review{}", ping, name, requested_team),
+                            embeds: vec![Embed::from_pr(pull_request, repository)],
+                        }
+                    } else {
+                        return Response::ok("requested team not configured");
                     }
                 }
                 _ => {
                     return Response::ok("unsupported pull request event type");
                 }
             };
-            if let Err(e) = discord::send_message(&discord.webhook_url, message).await {
+            if let Err(e) = discord::send_message(&config.discord.webhook_url, message).await {
                 return Response::error(format!("error sending discord webhook: {}", e), 500);
             }
         }

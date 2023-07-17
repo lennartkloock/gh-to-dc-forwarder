@@ -6,7 +6,7 @@ This is a [Cloudflare Worker](https://workers.cloudflare.com/) that forwards Git
 
 Clone this repository and install the dependencies with `npm install`.
 
-(Optional) Set the right `REVIEWERS_ROLE_ID` in `wrangler.toml`.
+(Optional) Set the right `REVIEWERS_ROLE_ID` and `GH_REVIEWER_TEAM` in `wrangler.toml`.
 
 Set the `GH_SECRET` secret to a random string by running
 
