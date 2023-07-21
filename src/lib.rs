@@ -114,6 +114,7 @@ async fn handle_event(event: Event, config: &AppConfig) -> Result<Response> {
             sender,
             pull_request,
             requested_team,
+            requested_reviewer,
             repository,
         } => {
             let name = sender.name.unwrap_or(format!("@{}", sender.login));
@@ -131,20 +132,30 @@ async fn handle_event(event: Event, config: &AppConfig) -> Result<Response> {
                     embeds: vec![Embed::from_pr(pull_request, repository)],
                 },
                 PullRequestAction::ReviewRequested => {
-                    if requested_team == config.github.team {
-                        let requested_team = requested_team
-                            .map(|t| format!(" from {}", t))
-                            .unwrap_or_default();
-                        let ping = config.discord
-                            .reviewers_role_id
-                            .map(|r| format!("<@&{}>\n", r))
-                            .unwrap_or_default();
-                        Message {
-                            content: format!("{}{} requested review{}", ping, name, requested_team),
-                            embeds: vec![Embed::from_pr(pull_request, repository)],
+                    // Only ping the role when a team is requested and the role id is set
+                    let ping = requested_team
+                        .is_some()
+                        .then_some(config.discord.reviewers_role_id)
+                        .flatten()
+                        .map(|r| format!("<@&{}>\n", r))
+                        .unwrap_or_default();
+                    let review_from = match (requested_reviewer, requested_team) {
+                        (Some(reviewer), _) => Some(reviewer.user_name()),
+                        (_, team) => {
+                            if team == config.github.team {
+                                team
+                            } else {
+                                return Response::ok("requested team not configured");
+                            }
                         }
-                    } else {
-                        return Response::ok("requested team not configured");
+                    };
+                    // Add "from"
+                    let review_from = review_from
+                        .map(|t| format!(" from {}", t))
+                        .unwrap_or_default();
+                    Message {
+                        content: format!("{}{} requested review{}", ping, name, review_from),
+                        embeds: vec![Embed::from_pr(pull_request, repository)],
                     }
                 }
                 _ => {

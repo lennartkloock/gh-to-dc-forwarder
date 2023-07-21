@@ -1,6 +1,13 @@
 use crate::github::{PullRequest, PullRequestState, Repository, User};
 
 #[derive(Debug, serde::Serialize)]
+pub struct Author {
+    pub name: String,
+    pub url: String,
+    pub icon_url: String,
+}
+
+#[derive(Debug, serde::Serialize)]
 pub struct Field {
     pub name: String,
     pub value: String,
@@ -19,6 +26,7 @@ pub struct Embed {
     pub description: Option<String>,
     pub url: String,
     pub color: u32,
+    pub author: Author,
     pub fields: Vec<Field>,
     pub footer: Option<Footer>,
 }
@@ -27,14 +35,6 @@ pub struct Embed {
 pub struct Message {
     pub content: String,
     pub embeds: Vec<Embed>,
-}
-
-fn user_name(user: User) -> String {
-    if let Some(name) = &user.name {
-        format!("{} ([@{}]({}))", name, user.login, user.html_url)
-    } else {
-        format!("[@{}]({})", user.login, user.html_url)
-    }
 }
 
 impl Embed {
@@ -50,12 +50,12 @@ impl Embed {
             description: pr.body,
             url: pr.html_url,
             color,
+            author: Author {
+                name: pr.user.user_name_with_link(),
+                url: pr.user.html_url,
+                icon_url: pr.user.avatar_url,
+            },
             fields: vec![
-                Field {
-                    name: "Author".to_string(),
-                    value: user_name(pr.user),
-                    inline: false,
-                },
                 Field {
                     name: "Additions".to_string(),
                     value: format!("**`+{}`**", pr.additions),

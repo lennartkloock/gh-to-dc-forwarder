@@ -6,6 +6,24 @@ pub struct User {
     pub avatar_url: String,
 }
 
+impl User {
+    pub fn user_name(&self) -> String {
+        if let Some(name) = &self.name {
+            format!("{} (@{})", name, self.login)
+        } else {
+            format!("@{}", self.login)
+        }
+    }
+
+    pub fn user_name_with_link(&self) -> String {
+        if let Some(name) = &self.name {
+            format!("{} ([@{}]({}))", name, self.login, self.html_url)
+        } else {
+            format!("[@{}]({})", self.login, self.html_url)
+        }
+    }
+}
+
 #[derive(Debug, serde::Deserialize)]
 pub struct Repository {
     pub full_name: String,
@@ -63,6 +81,7 @@ pub enum Event {
         sender: User,
         pull_request: PullRequest,
         requested_team: Option<String>,
+        requested_reviewer: Option<User>,
         repository: Repository,
     },
 }
