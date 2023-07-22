@@ -8,6 +8,10 @@ command = "cargo install -q worker-build && worker-build --release"
 [vars]
 REVIEWERS_ROLE_ID = "1069338073978130493"
 GH_TEAM = "reviewers"
+DC_USER_IDS = """{
+\"lennartkloock\": \"285406838348972042\"
+}"""
+DC_ROLE_IDS = "{ \"reviewers\": \"1069338073978130493\" }"
 
 # The necessary secrets are:
 # - GH_SECRET

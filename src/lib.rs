@@ -7,46 +7,9 @@ use crate::{
     github::PullRequestAction,
 };
 
+mod config;
 mod discord;
 mod github;
-
-#[derive(Debug)]
-struct GithubConfig {
-    pub secret: String,
-    pub team: Option<String>,
-}
-
-#[derive(Debug)]
-struct DiscordConfig {
-    pub webhook_url: String,
-    pub reviewers_role_id: Option<u64>,
-}
-
-#[derive(Debug)]
-struct AppConfig {
-    pub github: GithubConfig,
-    pub discord: DiscordConfig,
-}
-
-impl TryFrom<Env> for AppConfig {
-    type Error = worker::Error;
-
-    fn try_from(env: Env) -> worker::Result<Self> {
-        Ok(Self {
-            github: GithubConfig {
-                secret: env.secret("GH_SECRET")?.to_string(),
-                team: env.var("GH_REVIEWER_TEAM").ok().map(|t| t.to_string()),
-            },
-            discord: DiscordConfig {
-                webhook_url: env.secret("WEBHOOK_URL")?.to_string(),
-                reviewers_role_id: env
-                    .var("REVIEWERS_ROLE_ID")
-                    .ok()
-                    .and_then(|v| v.to_string().parse().ok()),
-            },
-        })
-    }
-}
 
 fn log_request(req: &Request) {
     console_log!(
@@ -63,7 +26,7 @@ async fn main(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
     log_request(&req);
 
     // Configuration
-    let config = match AppConfig::try_from(env) {
+    let config = match config::AppConfig::try_from(env) {
         Ok(config) => config,
         Err(e) => {
             console_log!("error loading configuration: {}", e);
@@ -105,7 +68,7 @@ async fn main(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
     }
 }
 
-async fn handle_event(event: Event, config: &AppConfig) -> Result<Response> {
+async fn handle_event(event: Event, config: &config::AppConfig) -> Result<Response> {
     console_log!("Received event");
     match event {
         Event::Ping { hook_id, zen } => console_log!("Received ping for {}, zen: {}", hook_id, zen),
@@ -138,27 +101,26 @@ async fn handle_event(event: Event, config: &AppConfig) -> Result<Response> {
                     embeds: vec![Embed::from_pr(pull_request, repository)],
                 },
                 PullRequestAction::ReviewRequested => {
-                    // Only ping the role when a team is requested and the role id is set
-                    let ping = requested_team
-                        .is_some()
-                        .then_some(config.discord.reviewers_role_id)
-                        .flatten()
-                        .map(|r| format!("<@&{}>\n", r))
-                        .unwrap_or_default();
-                    let review_from = match (requested_reviewer, requested_team) {
-                        (Some(reviewer), _) => Some(reviewer.user_name()),
-                        (_, team) => {
-                            if team.as_ref().map(|t| &t.slug) == config.github.team.as_ref() {
-                                team.map(|t| t.name)
-                            } else {
-                                return Response::ok(format!(
-                                    "requested team not configured: slug: {:?}, configured: {:?}",
-                                    team.as_ref().map(|t| &t.slug),
-                                    config.github.team.as_ref()
-                                ));
-                            }
-                        }
+                    let (ping, review_from) = match (requested_reviewer, requested_team) {
+                        (Some(reviewer), _) => (
+                            config
+                                .discord
+                                .user_ids
+                                .get(&reviewer.login)
+                                .map(|i| format!("<@{}>", i)),
+                            Some(reviewer.user_name()),
+                        ),
+                        (_, Some(team)) => (
+                            config
+                                .discord
+                                .role_ids
+                                .get(&team.slug)
+                                .map(|i| format!("<@&{}>", i)),
+                            Some(team.name),
+                        ),
+                        _ => (None, None),
                     };
+                    let ping = ping.unwrap_or_default();
                     // Add "from"
                     let review_from = review_from
                         .map(|t| format!(" from {}", t))
