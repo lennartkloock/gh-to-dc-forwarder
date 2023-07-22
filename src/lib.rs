@@ -101,32 +101,23 @@ async fn handle_event(event: Event, config: &config::AppConfig) -> Result<Respon
                     embeds: vec![Embed::from_pr(pull_request, repository)],
                 },
                 PullRequestAction::ReviewRequested => {
-                    let (ping, review_from) = match (requested_reviewer, requested_team) {
-                        (Some(reviewer), _) => (
-                            config
-                                .discord
-                                .user_ids
-                                .get(&reviewer.login)
-                                .map(|i| format!("<@{}>", i)),
-                            Some(reviewer.user_name()),
-                        ),
-                        (_, Some(team)) => (
-                            config
-                                .discord
-                                .role_ids
-                                .get(&team.slug)
-                                .map(|i| format!("<@&{}>", i)),
-                            Some(team.name),
-                        ),
-                        _ => (None, None),
+                    let ping = match (requested_reviewer, requested_team) {
+                        (Some(reviewer), _) => config
+                            .discord
+                            .user_ids
+                            .get(&reviewer.login)
+                            .map(|i| format!("<@{}>", i)),
+                        (_, Some(team)) => config
+                            .discord
+                            .role_ids
+                            .get(&team.slug)
+                            .map(|i| format!("<@&{}>", i)),
+                        _ => None,
                     };
-                    let ping = ping.unwrap_or_default();
                     // Add "from"
-                    let review_from = review_from
-                        .map(|t| format!(" from {}", t))
-                        .unwrap_or_default();
+                    let ping = ping.map(|t| format!(" from {}", t)).unwrap_or_default();
                     Message {
-                        content: format!("{}{} requested review{}", ping, name, review_from),
+                        content: format!("{} requested review{}", name, ping),
                         embeds: vec![Embed::from_pr(pull_request, repository)],
                     }
                 }
