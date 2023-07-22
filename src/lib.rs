@@ -101,24 +101,26 @@ async fn handle_event(event: Event, config: &config::AppConfig) -> Result<Respon
                     embeds: vec![Embed::from_pr(pull_request, repository)],
                 },
                 PullRequestAction::ReviewRequested => {
-                    let ping = match (requested_reviewer, requested_team) {
+                    if let Some(ping) = match (requested_reviewer, requested_team) {
                         (Some(reviewer), _) => config
                             .discord
                             .user_ids
                             .get(&reviewer.login)
-                            .map(|i| format!("<@{}>", i)),
+                            .map(|i| format!("<@{}>", i))
+                            .or(Some(reviewer.user_name())),
                         (_, Some(team)) => config
                             .discord
                             .role_ids
                             .get(&team.slug)
                             .map(|i| format!("<@&{}>", i)),
                         _ => None,
-                    };
-                    // Add "from"
-                    let ping = ping.map(|t| format!(" from {}", t)).unwrap_or_default();
-                    Message {
-                        content: format!("{} requested review{}", name, ping),
-                        embeds: vec![Embed::from_pr(pull_request, repository)],
+                    } {
+                        Message {
+                            content: format!("{} requested review from {}", name, ping),
+                            embeds: vec![Embed::from_pr(pull_request, repository)],
+                        }
+                    } else {
+                        return Response::ok("no ping configured for requested reviewer");
                     }
                 }
                 _ => {
