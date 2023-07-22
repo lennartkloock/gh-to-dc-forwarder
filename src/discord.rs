@@ -51,7 +51,7 @@ impl Embed {
             url: pr.html_url,
             color,
             author: Author {
-                name: pr.user.user_name_with_link(),
+                name: pr.user.user_name(),
                 url: pr.user.html_url,
                 icon_url: pr.user.avatar_url,
             },

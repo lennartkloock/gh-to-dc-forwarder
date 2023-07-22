@@ -142,10 +142,14 @@ async fn handle_event(event: Event, config: &AppConfig) -> Result<Response> {
                     let review_from = match (requested_reviewer, requested_team) {
                         (Some(reviewer), _) => Some(reviewer.user_name()),
                         (_, team) => {
-                            if team == config.github.team {
-                                team
+                            if team.as_ref().map(|t| &t.slug) == config.github.team.as_ref() {
+                                team.map(|t| t.name)
                             } else {
-                                return Response::ok("requested team not configured");
+                                return Response::ok(format!(
+                                    "requested team not configured: slug: {:?}, configured: {:?}",
+                                    team.as_ref().map(|t| &t.slug),
+                                    config.github.team.as_ref()
+                                ));
                             }
                         }
                     };

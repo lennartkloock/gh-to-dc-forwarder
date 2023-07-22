@@ -14,14 +14,12 @@ impl User {
             format!("@{}", self.login)
         }
     }
+}
 
-    pub fn user_name_with_link(&self) -> String {
-        if let Some(name) = &self.name {
-            format!("{} ([@{}]({}))", name, self.login, self.html_url)
-        } else {
-            format!("[@{}]({})", self.login, self.html_url)
-        }
-    }
+#[derive(Debug, serde::Deserialize)]
+pub struct Team {
+    pub slug: String,
+    pub name: String,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -80,7 +78,7 @@ pub enum Event {
         action: PullRequestAction,
         sender: User,
         pull_request: PullRequest,
-        requested_team: Option<String>,
+        requested_team: Option<Team>,
         requested_reviewer: Option<User>,
         repository: Repository,
     },
