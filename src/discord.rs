@@ -1,4 +1,4 @@
-use crate::github::{PullRequest, PullRequestState, Repository, User};
+use crate::github::{PullRequest, PullRequestState, Repository};
 
 #[derive(Debug, serde::Serialize)]
 pub struct Author {
