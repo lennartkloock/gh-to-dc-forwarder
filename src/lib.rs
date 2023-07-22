@@ -123,10 +123,16 @@ async fn handle_event(event: Event, config: &AppConfig) -> Result<Response> {
                     content: format!("{} opened a pull request", name),
                     embeds: vec![Embed::from_pr(pull_request, repository)],
                 },
-                PullRequestAction::Closed => Message {
-                    content: format!("{} closed a pull request", name),
-                    embeds: vec![Embed::from_pr(pull_request, repository)],
-                },
+                PullRequestAction::Closed => {
+                    let verb = match pull_request.merged {
+                        Some(true) => "merged",
+                        _ => "closed",
+                    };
+                    Message {
+                        content: format!("{} {} a pull request", verb, name,),
+                        embeds: vec![Embed::from_pr(pull_request, repository)],
+                    }
+                }
                 PullRequestAction::Reopened => Message {
                     content: format!("{} reopened a pull request", name),
                     embeds: vec![Embed::from_pr(pull_request, repository)],
