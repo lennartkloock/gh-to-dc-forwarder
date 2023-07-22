@@ -5,7 +5,6 @@ use worker::Env;
 #[derive(Debug)]
 pub struct GithubConfig {
     pub secret: String,
-    pub team: Option<String>,
 }
 
 #[derive(Debug)]
@@ -32,7 +31,6 @@ impl TryFrom<Env> for AppConfig {
         Ok(Self {
             github: GithubConfig {
                 secret: env.secret("GH_SECRET")?.to_string(),
-                team: env.var("GH_REVIEWER_TEAM").ok().map(|t| t.to_string()),
             },
             discord: DiscordConfig {
                 webhook_url: env.secret("WEBHOOK_URL")?.to_string(),
