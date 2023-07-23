@@ -56,6 +56,17 @@ pub struct PullRequest {
     pub deletions: u64,
 }
 
+impl PullRequest {
+    pub fn clip_body(&mut self) {
+        if let Some(body) = &mut self.body {
+            if body.len() > 250 {
+                body.truncate(250);
+                body.push_str("\n...");
+            }
+        }
+    }
+}
+
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "snake_case", tag = "type", content = "payload")]
 #[allow(clippy::large_enum_variant)]

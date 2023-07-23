@@ -38,7 +38,8 @@ pub struct Message {
 }
 
 impl Embed {
-    pub fn from_pr(pr: PullRequest, repo: Repository) -> Self {
+    pub fn from_pr(mut pr: PullRequest, repo: Repository) -> Self {
+        pr.clip_body();
         let color = match (pr.state, pr.merged) {
             (_, Some(true)) => 0x8957e5,
             (PullRequestState::Open, _) if pr.draft => 0x6e7681,
