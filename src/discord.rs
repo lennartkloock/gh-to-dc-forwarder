@@ -51,7 +51,11 @@ impl Embed {
             url: pr.html_url,
             color,
             author: Author {
-                name: pr.user.user_name(),
+                name: pr
+                    .user
+                    .name
+                    .map(|n| format!("{} ({})", n, pr.user.login))
+                    .unwrap_or(pr.user.login),
                 url: pr.user.html_url,
                 icon_url: pr.user.avatar_url,
             },

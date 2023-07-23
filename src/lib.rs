@@ -80,7 +80,7 @@ async fn handle_event(event: Event, config: &config::AppConfig) -> Result<Respon
             requested_reviewer,
             repository,
         } => {
-            let name = sender.name.unwrap_or(format!("@{}", sender.login));
+            let name = sender.name.unwrap_or(format!("`{}`", sender.login));
             let message = match action {
                 PullRequestAction::Opened => Message {
                     content: format!("{} opened a pull request", name),
@@ -107,7 +107,12 @@ async fn handle_event(event: Event, config: &config::AppConfig) -> Result<Respon
                             .user_ids
                             .get(&reviewer.login)
                             .map(|i| format!("<@{}>", i))
-                            .or(Some(reviewer.user_name())),
+                            .or(Some(
+                                reviewer
+                                    .name
+                                    .map(|n| format!("{} (`{}`)", n, reviewer.login))
+                                    .unwrap_or(format!("`{}`", reviewer.login)),
+                            )),
                         (_, Some(team)) => config
                             .discord
                             .role_ids

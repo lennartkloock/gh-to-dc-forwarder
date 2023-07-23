@@ -6,16 +6,6 @@ pub struct User {
     pub avatar_url: String,
 }
 
-impl User {
-    pub fn user_name(&self) -> String {
-        if let Some(name) = &self.name {
-            format!("{} (@{})", name, self.login)
-        } else {
-            format!("@{}", self.login)
-        }
-    }
-}
-
 #[derive(Debug, serde::Deserialize)]
 pub struct Team {
     pub slug: String,
