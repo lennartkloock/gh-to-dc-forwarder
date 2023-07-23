@@ -92,7 +92,7 @@ async fn handle_event(event: Event, config: &config::AppConfig) -> Result<Respon
                         _ => "closed",
                     };
                     Message {
-                        content: format!("{} {} a pull request", verb, name,),
+                        content: format!("{} {} a pull request", name, verb),
                         embeds: vec![Embed::from_pr(pull_request, repository)],
                     }
                 }
