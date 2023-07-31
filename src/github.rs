@@ -61,7 +61,7 @@ impl PullRequest {
         if let Some(body) = &mut self.body {
             if body.len() > 250 {
                 body.truncate(250);
-                body.push_str("\n...");
+                body.push_str("...");
             }
         }
     }
