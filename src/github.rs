@@ -9,13 +9,13 @@ pub struct User {
 #[derive(Debug, serde::Deserialize)]
 pub struct Team {
     pub slug: String,
-    pub name: String,
+    // pub name: String,
 }
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Repository {
     pub full_name: String,
-    pub html_url: String,
+    // pub html_url: String,
     pub owner: User,
 }
 
@@ -57,13 +57,17 @@ pub struct PullRequest {
 }
 
 impl PullRequest {
-    pub fn clip_body(&mut self) {
-        if let Some(body) = &mut self.body {
-            if body.len() > 250 {
-                body.truncate(250);
-                body.push_str("...");
+    pub fn clipped_body(&self) -> Option<String> {
+        let mut body = self.body.clone()?;
+
+        if body.len() > 250 {
+            if let Some((new_len, _)) = body.char_indices().skip(250).find(|(_, c)| *c == '\n') {
+                body.truncate(new_len);
+                body.push_str("\n...");
             }
         }
+
+        Some(body)
     }
 }
 
